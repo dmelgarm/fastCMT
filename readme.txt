@@ -1,3 +1,7 @@
+WARNING: This code is undergoing major overhaul to accomodate multiple point sources and is
+changing frequently, use at your own risk
+
+
 *****************************
 ********   fastCMT   ********
 *****************************
@@ -91,4 +95,4 @@ Where column 1 is layer thickness, column 2 is vp, column 3 is vs and column 4 i
 6. I have included an example of a GMT routine I use to make movies of the inversion results (for Tokachi-Oki in this case), it's called fastCMTtoki.gmt you should modify it to suit your needs. It uses ffmpeg to encode the movie, you can get that off the web.
 
 Happy trails!
-
+
