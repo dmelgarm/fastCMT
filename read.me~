@@ -1,0 +1,17 @@
+batch_fcmt ~ Batch processing script
+{
+	fastCMT ~ Main CMT inversion script
+	{
+		makegreen ~ Builds Green Functions at station coordinates
+		{
+			rgreen ~ reads EDGRN Green function files
+			getmu ~ Gets value of rigiidty at source depth
+			interleave ~
+			buildrotmat ~ Construct (x,y,z) <--> (r,t,z) rotation matrix
+			l1decode_pd ~ L1 Magic linear programming L1 minimization algorithm
+			mtinv2mt ~ Convert from column vector to tensor form
+		}
+	}
+}
+
+cmtgridmin

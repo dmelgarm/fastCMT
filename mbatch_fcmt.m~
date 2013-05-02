@@ -1,0 +1,82 @@
+function [xyz mm Lm]=mbatch_fcmt(fsave,Ln)
+
+%DMM 04/2011
+%
+% Perform CMT inversion at multiple points using the fastCMT routine
+%
+% IN
+% fsave - file name to save data
+% Ln - Norm to be used in the inversions, 1 for L1, 2 for L2
+%         
+% OUT
+% xyz - Contains coordinates of grid points
+% M - 4 dimensional variable containing momoent tensors of all grid points at all time steps
+% L - Contains misfits for each grid point at each time step
+
+%Run parameters
+path='/diego-local/Research/Data/Toki/'
+%data='d_reduced.mat';
+data='tokifull.mat';
+%data='tohoku.mat';
+%fgreen='elmay_4layer'  %filename used in EDGRN
+fgreen='toki'
+display(['L' num2str(Ln) ' norm inversion selected...'])
+% _________________
+
+%Load data
+cd(path)
+%mkdir(fsave)
+load velmod.mat
+%load velmod_4layer.mat
+load(data)
+% _________________
+cd ([path fsave])
+load([fsave '.mat']);
+[m lonmeca latmeca zmeca]=cmtgridmin([path fsave],M,L,xyz,1,0);
+close all
+[st1 st2]=getgeo(m);
+Niter=max(size(st1));
+for k=1:Niter
+    display('Working on ' n
+    data.N=coseis.N(:,k);
+    data.E=coseis.E(:,k);
+    data.U=coseis.U(:,k);
+    data.T=coseis.T(:,k);
+    data.lon=coseis.lon;
+    data.lat=coseis.lat;
+    data.stdn=coseis.stdn;
+    data.stde=coseis.stde;
+    data.stdu=coseis.stdu;
+    [m L synthetics]=mfastCMT(data,fgreen,velmod,[lonmeca(k) latmeca(k) zmeca(k)],st1(k),st2(k),'mpsmeca.inp',1,0,Ln);
+    mm(:,k)=m;
+    Lm(k)=L;
+end
+xyz=[lonmeca latmeca zmeca];
+
+
+
+
+
+% Structural prelims
+% Niter=max(size(latgrid));
+% Get solutions
+% k=0;
+% xyz=[0 0 0];
+% maxdata=0;
+% for k=1:Niter
+%     lon=longrid(k)
+%     lat=latgrid(k)
+%     z=zgrid(k)
+%     display([num2str(k) '/' num2str(Niter)])
+%     [m l d]=fastCMT(coseis,fgreen,velmod,[lon,lat z],'psmeca.inp',1,0,Ln);
+%     cd([path fsave])
+%     source=[lon lat z];
+%     sname=['sdisp' num2str(k)];
+%     save(sname,'source','d');
+%     M(:,:,:,k)=m;
+%     L(k,:)=l;
+%     xyz(k,:)=[lon lat z];
+% end
+% cd([path fsave])
+% save(fsave,'M','L','xyz')
+

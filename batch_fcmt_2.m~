@@ -1,0 +1,112 @@
+function [xyz M L]=batch_fcmt_2(fsave,Ln)
+
+%DMM 04/2011
+%
+% Perform CMT inversion at multiple points using the fastCMT routine
+%
+% IN
+% fsave - file name to save data
+% Ln - Norm to be used in the inversions, 1 for L1, 2 for L2
+%         
+% OUT
+% xyz - Contains coordinates of grid points
+% M - 4 dimensional variable containing momoent tensors of all grid points at all time steps
+% L - Contains misfits for each grid point at each time step
+
+%Run parameters
+path='/diego-local/Research/Data/Toki/'
+%data='toki.mat';
+data='tohoku.mat';
+%fgreen='elmay_4layer'  %filename used in EDGRN
+fgreen='toki'
+display(['L' num2str(Ln) ' norm inversion selected...'])
+% _________________
+
+%Load data
+cd(path)
+mkdir(fsave)
+load velmod.mat
+%load velmod_4layer.mat
+load(data)
+% _________________
+
+
+% % Grid on fault plane
+% [longrid latgrid zgrid]=textread('fault.xyz','%f%f%f');
+% longrid=longrid';
+% latgrid=latgrid';
+% zgrid=zgrid;
+% zgrid=-zgrid';
+% % i=find(longrid>134 & longrid<180);
+% % zgrid=zgrid(i);
+% % latgrid=latgrid(i);
+% % longrid=longrid(i);
+% i=find(latgrid>40 & latgrid<44);
+% %i=find(zgrid>150);
+% zgrid=zgrid(i);
+% latgrid=latgrid(i);
+% longrid=longrid(i);
+% display('Creating grid on plate interface...')
+% ________________
+
+% % Prism around epicentre
+[longrid latgrid zgrid]=makegrid(-115.28,32.192,10e3,0.1,0.1,2e3,14,14,10);
+% [longrid latgrid zgrid]=makegrid(143.91,41.81,27e3,0.3,0.3,3e3,12,12,10);
+% [longrid latgrid zgrid]=makegrid(143.84,42.21,27e3,0.3,0.3,3e3,0,0,0)
+% [longrid latgrid zgrid]=makegrid(142.969,38.321,20e3,0.2,0.2,3e3,1,1,1);
+% [longrid latgrid zgrid]=makegrid(143.11,37.92,19.5e3,0.2,0.2,3e3,1,1,1);
+i=find(zgrid<150e3);
+longrid=longrid(i);
+latgrid=latgrid(i);
+zgrid=zgrid(i);
+display('Creating prism grid around origin...')
+% ____________
+
+% Single sources
+% Toki
+%longrid=[143.8]; 
+%latgrid=[42.1];
+%zgrid=[28e3];
+% El May
+% longrid=[-115.37]; 
+% latgrid=[32.35];
+% zgrid=[8e3];
+% Tohoku
+% longrid=143.11;
+% latgrid=37.92;
+% zgrid=19.5e3;
+% display('No grid created, single point inversion...')
+% _____________
+
+
+grd=[longrid' latgrid' zgrid'];
+cd /diego-local/scripts/GMT/fastCMT
+save('grdsearch.xyz','grd','-ascii')
+cd(path)
+
+%Structural prelims
+Niter=max(size(latgrid));
+%Get solutions
+k=0;
+xyz=[0 0 0];
+maxdata=0;
+for k=1:Niter
+    lon=longrid(k)
+    lat=latgrid(k)
+    z=zgrid(k)
+    display([num2str(k) '/' num2str(Niter)])
+    [m l chi p C d]=fastCMT(coseis,fgreen,velmod,[lon,lat z],'psmeca.inp',1,0,1,0,Ln);
+    cd([path fsave])
+    source=[lon lat z];
+    stats.chi(:,k)=chi';
+    stats.p(:,k)=p';
+    stats.cov(:,:,:,k)=C;
+    sname=['sdisp' num2str(k)];
+    save(sname,'source','d','stats');
+    M(:,:,:,k)=m;
+    L(k,:)=l;
+    xyz(k,:)=[lon lat z];
+end
+cd([path fsave])
+save(fsave,'M','L','xyz')
+

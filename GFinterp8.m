@@ -1,0 +1,57 @@
+function G=GFinterp8(lon,lat,z,fgreen)
+
+%Find 8 closest nodes (a cube) and interpolate GFs
+
+cd /diego-local/Research/Data/Tohoku/denseGF
+[lon_all lat_all z_all]=textread('japan_aria_grid','%f%f%f');
+%Get grid params
+dlat=0.2;
+dlon=0.2;
+dz=2000;
+%Find 2 closest depth
+zu=unique(z_all);
+zdist=abs(z-zu);
+[zmin iz]=min(zdist);
+z8(1:4)=zu(iz);
+z8(5:8)=zu(iz)+dz;
+%Find 4 closest lat's and lon's
+lonu=unique(lon_all);
+latu=unique(lat_all);
+h=abs(lon-lonu);
+[h i]=sort(h);
+lonmin1=lonu(i(1));
+lonmin2=lonu(i(2));
+lon8([1 2 5 6])=lonmin1;
+lon8([3 4 7 8])=lonmin2;
+h=abs(lat-latu);
+[h i]=sort(h);
+latmin1=latu(i(1));
+latmin2=latu(i(2));
+lat8([1 3 5 7])=latmin1;
+lat8([2 4 6 8])=latmin2;
+%Now search for these guys in the grid and load GFs of all 8 corners
+grid_all=[lon_all lat_all z_all];
+for k=1:8
+    i1=find(lon_all==lon8(k));
+    i2=find(lat_all==lat8(k));
+    i3=find(z_all==z8(k));
+    inode(k)=intersect(i1,intersect(i2,i3));
+    g8(:,:,k)=load([fgreen num2str(inode(k))]);
+end
+
+% latinterp=repmat(lat8,1,max(size(g8)));
+% loninterp=repmat(lat8,1,max(size(g8)));
+% zinterp=repmat(lat8,1,max(size(g8)));
+tic
+for j=1:5
+    j
+    for k=1:max(size(g8))
+        g=g8(k,j,:);
+        g=reshape(g,1,8);
+        %gi(k,j) = griddata3(lon8,lat8,z8,g,lon,lat,z);
+        F=TriScatteredInterp(lon8',lat8',z8',g');
+        gi(k,j)=F(lon,lat,z);
+    end
+end
+toc
+G=gi;

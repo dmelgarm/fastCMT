@@ -1,0 +1,57 @@
+function [lonout latout zout inode]=getgrid(lon,lat,z,azi,length,nsource)
+
+%DMM 03/2012
+
+
+% cd /diego-local/Research/Data/Tohoku/denseGF
+% [lon_all lat_all z_all]=textread('japan_aria_grid','%f%f%f');
+ cd /diego-local/Research/Data/Escenario2011/denseGF
+ load('mx11_GF_grid.mat');
+ lon_all=grid(1:7254);
+ lat_all=grid(7255:14508);
+ lat_all=grid(7255:14508);
+
+%Get grid params
+dlat=0.2;
+dlon=0.2;
+dz=2000;
+%Make continuos line
+azi=deg2rad(azi);
+lon1=lon+(length/2)*sin(azi);
+lon2=lon-(length/2)*sin(azi);
+lat1=lat+(length/2)*cos(azi);
+lat2=lat-(length/2)*cos(azi);
+%Discretize
+longrd=linspace(lon1,lon2,nsource);
+latgrd=linspace(lat1,lat2,nsource);
+%Find  closest depth
+zu=unique(z_all);
+zdist=abs(z-zu);
+[zmin iz]=min(zdist);
+zmin=zu(iz);
+iz=find(z_all==zmin);
+%Find closest nodes
+lonu=unique(lon_all);
+latu=unique(lat_all);% %Epicentre coords
+% lonepi=142.5;
+% latepi=38.2;
+% depthepi=20e3;
+% %Line griding
+% azi=5:5:180;
+% %azi=15;
+
+for n=1:nsource
+    %Get distances[zmin iz]=min(zdist)
+    dist=sqrt((longrd(n)-lon_all(iz)).^2+(latgrd(n)-lat_all(iz)).^2);
+    [latmin idist]=min(dist);
+    latout(n)=lat_all(iz(idist));
+    lonout(n)=lon_all(iz(idist));
+    inode(n)=iz(idist);
+end
+[latu ilat]=unique(latout);
+[lonu ilon]=unique(lonout);
+iu=union(ilon,ilat);
+lonout=lonout(iu)';
+latout=latout(iu)';
+inode=inode(iu)';
+zout=zmin*ones(size(latout));

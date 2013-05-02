@@ -1,0 +1,79 @@
+function prepare_kaltoki(dtma)
+
+figure
+noma=0;
+if dtma==0
+    noma=1;
+end
+path='/diego-local/Research/Data/';
+cd([path 'JapKal'])
+load('kdisp.mat','c')
+i=find(c.process);  %Good stations
+de=c.dek(i,:);
+dn=c.dnk(i,:);
+du=c.duk(i,:);
+deg=c.gpse(i,:);
+dng=c.gpsn(i,:);
+dug=c.gpsu(i,:);
+tg=c.tgps(i,:);
+t=c.tk(i,:);
+lat=c.lat(i);
+lon=c.lon(i);
+i=find(t==0);
+de(i)=NaN;
+du(i)=NaN;
+dn(i)=NaN;
+t(i)=NaN;
+nma=zeros(size(dn));
+ema=nma;
+uma=nma;
+if noma==0
+    for k=1:min(size(t))
+        k
+        dt=t(k,2)-t(k,1);
+        dt2=tg(k,2)-tg(k,1)
+        ma=rnd(dtma/dt);
+        ma=rnd(dtma/dt);
+        nma(k,:)=movavg(dn(k,:),ma,ma);
+        ema(k,:)=movavg(de(k,:),ma,ma);
+        uma(k,:)=movavg(du(k,:),ma,ma);
+        m2a=rnd(dtma/dt2);
+        nma(k,:)=movavg(dng(k,:),ma2,ma2);
+        ema(k,:)=movavg(deg(k,:),ma2,ma2);
+        uma(k,:)=movavg(dug(k,:),ma2,ma2);
+    end
+else
+    nma=dn;
+    ema=de;
+    uma=du;
+end
+subplot(3,3,1)
+plot(t',ema','LineWidth',2);
+grid on
+ylabel('East (m)','FontSize',20)
+subplot(3,1,3)
+plot(t',nma','LineWidth',2);
+grid on
+ylabel('North (m)','FontSize',20)
+subplot(3,1,5)
+plot(t',uma','LineWidth',2);
+grid on
+ylabel('Up (m)','FontSize',20)
+xlabel('Seconds after origin time','FontSize',20)
+
+subplot(3,3,1)
+plot(t',ema','LineWidth',2);
+grid on
+ylabel('East (m)','FontSize',20)
+subplot(3,1,3)
+plot(t',nma','LineWidth',2);
+grid on
+ylabel('North (m)','FontSize',20)
+subplot(3,1,5)
+plot(t',uma','LineWidth',2);
+grid on
+ylabel('Up (m)','FontSize',20)
+xlabel('Seconds after origin time','FontSize',20)
+
+
+a=0;

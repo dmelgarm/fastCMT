@@ -1,0 +1,31 @@
+function plot_edcmp(f)
+
+display('Reading displacements from EDCMP...')
+cd '/diego-local/scripts/Fortran/ED/outdata'
+fid=fopen([f '.disp']);
+%Ignore header info (3 lines)
+for k=1:3
+    t=fgets(fid);
+end
+D=fscanf(fid,'%f%f%f%f%f',[5 inf]);
+fclose(fid);
+D=D';
+y=D(:,1);
+x=D(:,2);
+uy=D(:,3);
+ux=D(:,4);
+uz=D(:,5);
+clear D
+%get lat's and lon's
+cd /diego-local/Research/Data/Toki
+load toki300.mat
+figure
+quiver(coseis.lon,coseis.lat,ux,uy,5)
+grid on
+axis equal
+%Write to file
+coseis.N=uy;
+coseis.E=ux;
+save('
+
+

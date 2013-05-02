@@ -1,0 +1,197 @@
+function get_coseis
+
+%DMM 10/2011
+%
+%Simulate metrics to extract real-time coseismic offsets
+
+close all
+
+dir='/diego-local/Research/Data/El Mayor'
+cd(dir)
+load d_MA120.mat
+% dir='/diego-local/Research/Data/Toki/'
+% cd(dir)
+% load toki.mat
+
+
+
+%Run parameters
+Tavg=20;
+thresh=0.025;
+p=0.2;
+Tvar=20;
+
+% N=coseis.N(:,22:422);
+% E=coseis.E(:,22:422);
+% U=coseis.U(:,22:422);
+% T=coseis.T(:,22:422);
+N=coseis.N(:,1:400);
+E=coseis.E(:,1:400);
+U=coseis.U(:,1:400);
+T=coseis.T(:,1:400);
+H=sqrt(E.^2+N.^2);
+mH=max(H');
+i=find(mH>thresh);
+H=H(i,:);
+E=E(i,:);
+N=N(i,:);
+U=U(i,:);
+T=T(i,:);
+%Update old data
+coseis.lat=coseis.lat(i);
+coseis.lon=coseis.lon(i);
+coseis.stdn=coseis.stdn(i);
+coseis.stde=coseis.stde(i);
+coseis.stdu=coseis.stdu(i);
+
+Hvar=movingSD(H,Tvar);   %Get trailing variance
+
+iter=size(Hvar,2);
+nsta=size(Hvar,1);
+%get maximum var and horiz. displacement at each epoch
+mH=zeros(size(Hvar));
+mH(:,1)=H(:,1);
+mHvar=zeros(size(Hvar));
+mHvar(:,1)=Hvar(:,1);
+for k=2:iter
+    %Get maximum offsets
+    mHvar_temp=Hvar(:,k);
+    mH_temp=H(:,k);
+    %Get maximum offsets
+    gt=mH_temp>mH(:,k-1);  %If new epoch offset is alrger
+    i=find(gt); %Which stations need updates
+    mH(:,k)=mH(:,k-1); %these are the old maximum values
+    mH(i,k)=mH_temp(i);  %And these are the one being updated
+    %Get maximum variances
+    gt=mHvar_temp>mHvar(:,k-1);  %If new epoch variance is alrger
+    i=find(gt); %Which stations need updates
+    mHvar(:,k)=mHvar(:,k-1); %these are the old maximum values
+    mHvar(i,k)=mHvar_temp(i);  %And these are the one being updated
+end
+%Find when it drops below p% of Variance but
+%respect horizontal offset threshold
+I=zeros(size(Hvar)); %This flags when the threshold is breached
+I1=ones(size(H,1),1);
+for k=2:iter
+   if k==250
+       a=0;
+   end
+   lt=Hvar(:,k)<(p*mHvar(:,k));
+   i=find(lt); %the ones that breach the variance threshold
+   gt=H(:,k)>thresh;
+   j=find(gt); %The ones that are over the threshold
+   ij=find(lt==1 & gt==1); %The ones that satisfy both
+   I(ij,k)=I1(ij,1);  %These are the old values
+   %Now validate that this hasn't happened BEFORE maximum offset is
+   %detected
+   maxH=max(mH(:,k));
+   i=find(mH(:,k)==maxH);
+   if I(i,k)==0  %Maximum offset hasn't stabilized
+       I(:,k)=zeros(nsta,1);
+   end
+end
+
+%Mark first occurence of variance threshold breahcing plus T seconds 
+Efinal=NaN(size(Hvar));
+Nfinal=Efinal;
+Ufinal=Efinal;
+Tfinal=Efinal;
+for k=1:nsta
+    Itemp=I(k,:);
+    i=find(Itemp);
+    if ~isempty(i)
+        i1=i(1);
+        if i1+Tavg>iter
+            i2=iter;
+        else
+            i2=i1+Tavg;
+        end
+        %Get averages over selected interval
+        Efinal(k,i1:end)=mean(E(k,i1:i2));
+        Nfinal(k,i1:end)=mean(N(k,i1:i2));
+        Ufinal(k,i1:end)=mean(U(k,i1:i2));
+        Tfinal(k,i1:end)=T(k,i1:end);
+    end
+end
+
+%Update trigger counter matrix
+for k=1:nsta
+    i=find(I(k,:));
+    I(k,i(1):end)=1;
+end    
+    
+
+%Plot data
+subplot(2,2,1)
+Hfinal=sqrt(Nfinal.^2+Efinal.^2);
+plot(T',H')
+grid on
+xlabel('Seconds after origin time')
+ylabel('Horizontal Disp. (m)')
+hold on
+plot(Tfinal',Hfinal','LineWidth',4)
+stem(206,1,'LineWidth',2)
+xlim([0 300])
+ylim([0 0.2])
+%Plot station availability
+t=1:1:iter;
+nthresh=10*ones(1,iter);
+NS=sum(I);
+subplot(2,2,[2 4])
+plot(t,NS,t,nthresh,'LineWidth',2);
+grid on
+xlabel('Seconds after origin','FontSize',20)
+ylabel('Stations detecting anomalous motion','FontSize',20)
+legend('#stations','threshold')
+subplot(2,2,3)
+plot(T',Hvar')
+grid on
+xlabel('Seconds after origin time')
+ylabel('Trailing Variance (m^2)')
+xlim([0 300])
+
+figure
+subplot(3,1,1)
+plot(T',N')
+grid on
+xlabel('Seconds after origin time')
+ylabel('North (m)')
+hold on
+plot(Tfinal',Nfinal','LineWidth',4)
+stem(206,1,'LineWidth',2)
+xlim([0 300])
+subplot(3,1,2)
+plot(T',E')
+grid on
+xlabel('Seconds after origin time')
+ylabel('East (m)')
+hold on
+plot(Tfinal',Efinal','LineWidth',4)
+stem(206,1,'LineWidth',2)
+xlim([0 300])
+subplot(3,1,1)
+plot(T',U')
+grid on
+xlabel('Seconds after origin time')
+ylabel('Up (m)')
+hold on
+plot(Tfinal',Ufinal','LineWidth',4)
+stem(206,1,'LineWidth',2)
+xlim([0 300])
+
+%Cut data to a particular epoch
+tcut=206;
+i=find(I(:,tcut));
+display(['Rapid solution when ' num2str(max(size(i))) ' stations detect anomalous motion.']);
+
+cd(dir)
+coseis.N=Nfinal(i,tcut)';
+coseis.E=Efinal(i,tcut)';
+coseis.U=Ufinal(i,tcut)';
+coseis.T=Tfinal(i,tcut)';
+coseis.lat=coseis.lat(i);
+coseis.lon=coseis.lon(i);
+coseis.stdn=coseis.stdn(i);
+coseis.stde=coseis.stde(i);
+coseis.stdu=coseis.stdu(i);
+save('rapid_coseis.mat','coseis')
